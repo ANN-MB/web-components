@@ -5,19 +5,27 @@ customElements.define("one-time-code", class extends HTMLElement {
       mode: "open"
     });
     this.size = /^([1-9]|1[0-9])$/.test(this.getAttribute('size')) ? this.getAttribute('size') : 6;
-    this.placeholder = this.getAttribute('placeholder') || false;
+    this.isplaceholder = this.hasAttribute('placeholder');
+    this.placeholder = this.getAttribute('placeholder');
     this.private = this.hasAttribute('private');
     this.autosubmit = this.hasAttribute('autosubmit');
     this.regex = /[0-9]/i;
     this.pattern = this.testpattern();
-    this.characters = (this.getAttribute('characters') !== null && this.getAttribute('characters') !== '') ? this.getAttribute('characters') : 'numeric';
+    this.characters = ['alpha', 'alphanumeric', 'numeric', 'all', 'letters'].includes(this.getAttribute('characters').toLowerCase()) ? this.getAttribute('characters').toLowerCase() : 'numeric';
     this.inputs = [];
     this.template = document.createElement("template");
-    this.template.innerHTML = '<style>' 
-      + ':host {white-space: nowrap}' 
-      + 'input {text-align:center;width: 3ch;height: 3ch}' 
-      + 'input:not(:last-child){margin-right:.5ch}' 
-      + '</style>';
+    this.template.innerHTML = `<style>
+    :host {
+      white-space: nowrap
+    }
+    input {
+      text-align:center;
+      width: 3ch;height: 3ch
+    }
+    input:not(:last-child) {
+      margin-right:.5ch
+    }
+    </style>`;
     this.render();
   }
   testpattern() {
@@ -27,13 +35,15 @@ customElements.define("one-time-code", class extends HTMLElement {
       if (patsplit) {
         try {
           return new RegExp(patsplit[1], patsplit[2]);
-        } catch (e) {
+        } catch (err) {
+          console.log('Pattern error.', err);
           return false;
         }
       } else {
         try {
           return new RegExp(pat, 'v');
-        } catch (e) {
+        } catch (err) {
+          console.log('Pattern error.', err);
           return false;
         }
       }
@@ -46,6 +56,7 @@ customElements.define("one-time-code", class extends HTMLElement {
     this.shadowRoot.appendChild(this.template.content.cloneNode(true));
     switch (this.characters) {
       case "alpha":
+      case "letters":
         this.regex = /[a-z]/i;
         break;
       case "alphanumeric":
@@ -66,11 +77,17 @@ customElements.define("one-time-code", class extends HTMLElement {
       //input.setAttribute('autocomplete','one-time-code');
       input.setAttribute('aria-label', 'Authorization code digit ' + i)
       input.type = this.private ? "password" : "text";
-      this.placeholder && (input.placeholder = this.placeholder.split('')[i]);
-      if (this.characters == 'numeric') {
+      if (this.isplaceholder) {
+        if (this.placeholder == '' || this.placeholder.length < this.size) {
+          input.placeholder = this.generatePlaceholder(this.characters, i);
+        } else if (this.placeholder.length >= this.size) {
+          input.placeholder = this.placeholder.split('')[i];
+        }
+      }
+      if (this.characters === 'numeric') {
         if ('inputmode' in document.createElement('input')) {
           input.setAttribute('inputmode', 'numeric');
-        } else {
+        } else if (!this.private) {
           input.type = 'tel';
         }
       }
@@ -84,7 +101,6 @@ customElements.define("one-time-code", class extends HTMLElement {
           input.nextElementSibling.focus();
         }
         if (e.key == "Backspace" && input.previousElementSibling) {
-          console.log('bonk')
           e.preventDefault();
           if (input.value == '') {
             input.previousElementSibling.value = '';
@@ -106,7 +122,7 @@ customElements.define("one-time-code", class extends HTMLElement {
       if (this.regex || this.pattern) {
         input.addEventListener('beforeinput', (e) => {
           let valid = this.pattern ? this.pattern : this.regex;
-          if (!valid.test(e.data) && data !== null) {
+          if (!valid.test(e.data) && e.data !== null) {
             e.preventDefault()
           }
         }, !1);
@@ -125,6 +141,19 @@ customElements.define("one-time-code", class extends HTMLElement {
       this.inputs.push(input);
     }
   }
+  generatePlaceholder(characters, index) {
+    switch (characters) {
+      case "alpha":
+      case "letters":
+        return ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'][index];
+      case "alphanumeric":
+        return ['A', '0', 'B', '1', 'C', '2', 'D', '3', 'E', '4', 'F', '5', 'G', '6', 'H', '7', 'I', '8', 'S', '9'][index];
+      case "numeric":
+        return index.toString();
+      default:
+        return '';
+    }
+  }
   getValue() {
     return Array.from(this.inputs).map(input => input.value).join('');
   }
@@ -141,12 +170,13 @@ customElements.define("one-time-code", class extends HTMLElement {
     }
   }
   autofill(content) {
+    // trims whitespaces, tabs and carriage returns in case of copy-paste from mail for example
     content = content.replace(/[\n\r\t\s]+/g, '');
     if ((this.regex || this.pattern) && content.length == this.size) {
       let valid = this.pattern ? this.pattern : this.regex;
       for (const char of content) {
         if (!valid.test(char)) {
-          return false
+          return false // If any character fails the test, return false
         }
       }
       for (let i = 0; i < this.size; i++) {
