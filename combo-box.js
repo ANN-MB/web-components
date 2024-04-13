@@ -1,21 +1,21 @@
 customElements.define("combo-box", class extends HTMLElement {
   constructor() {
     super();
-    this.attachShadow({ 
-		  mode: "open",
-		  delegatesFocus: true
-	  });			
+    this.attachShadow({
+      mode: "open",
+      delegatesFocus: true
+    });
     this.SELECTED_OPTION = null;
-    this.VALEUR 			   = null;
-    this.VISUAL_FOCUS    = null;
-    this.labelSearch     = this.getAttribute("labelsearch");
-  	this.labelReset 		 = this.getAttribute("labelreset");
-  	this.labelList 			 = this.getAttribute("labellist");
-  	if (!this.labelSearch || !this.labelReset || !this.labelList) {
-  		throw new Error(`Please provide the following attributes for accessibility :\nlabelsearch="[string]"\nlabelreset="[string]"\nlabellist="[string]"`);
-  		return 
-  	}
-    this.TEMPLATE =	document.createElement("template");
+    this.VALEUR = null;
+    this.VISUAL_FOCUS = null;
+    this.labelSearch = this.getAttribute("labelsearch");
+    this.labelReset = this.getAttribute("labelreset");
+    this.labelList = this.getAttribute("labellist");
+    if (!this.labelSearch || !this.labelReset || !this.labelList) {
+      throw new Error(`Please provide the following attributes for accessibility :\nlabelsearch="[string]"\nlabelreset="[string]"\nlabellist="[string]"`);
+      return
+    }
+    this.TEMPLATE = document.createElement("template");
     this.TEMPLATE.innerHTML = `<style>
   	*, *::before, *::after {
   	  box-sizing: border-box
@@ -200,20 +200,20 @@ customElements.define("combo-box", class extends HTMLElement {
   }
   render() {
     this.shadowRoot.appendChild(this.TEMPLATE.content.cloneNode(true));
-	  this.INPUT_SEARCH = 	this.shadowRoot.querySelector("input");
-    this.BUTTON_RESET = 	this.shadowRoot.querySelector("button");
-    this.COMBOBOX_BOTTOM = 	this.shadowRoot.querySelector(`[part="combobox__bottom"]`);
-    this.ITEM_LIST = 		this.shadowRoot.querySelector("ul");
+    this.INPUT_SEARCH = this.shadowRoot.querySelector("input");
+    this.BUTTON_RESET = this.shadowRoot.querySelector("button");
+    this.COMBOBOX_BOTTOM = this.shadowRoot.querySelector(`[part="combobox__bottom"]`);
+    this.ITEM_LIST = this.shadowRoot.querySelector("ul");
     this.INPUT_SEARCH.setAttribute("placeholder", this.labelSearch);
-    this.INPUT_SEARCH.setAttribute("aria-label",  this.labelSearch);
-	  this.INPUT_SEARCH.style.minWidth = "calc(" + this.labelSearch.length + "ch + " + this.labelSearch.length + "ch * 0.1 + 3.5em)";
+    this.INPUT_SEARCH.setAttribute("aria-label", this.labelSearch);
+    this.INPUT_SEARCH.style.minWidth = "calc(" + this.labelSearch.length + "ch + " + this.labelSearch.length + "ch * 0.1 + 3.5em)";
     this.BUTTON_RESET.setAttribute("aria-label", this.labelReset);
-    this.ITEM_LIST.setAttribute   ("aria-label", this.labelList);
+    this.ITEM_LIST.setAttribute("aria-label", this.labelList);
     this.querySelectorAll("item").forEach((item, index) => this.generateItem(item, index));
     this.LIS = this.shadowRoot.querySelectorAll("li");
     this.addEventListener("focus", event => {
       this.setAttribute("open", "");
-	  this.INPUT_SEARCH.focus();
+      this.INPUT_SEARCH.focus();
       this.moveVisualFocus(this.INPUT_SEARCH);
     });
     this.addEventListener("blur", event => {
@@ -229,14 +229,18 @@ customElements.define("combo-box", class extends HTMLElement {
       if (t == this.BUTTON_RESET) this.reset();
     }, true);
     this.INPUT_SEARCH.addEventListener("keyup", event => {
-	  this.setAttribute("open","");
-	  const searchVal = this.removeDiactrics(this.INPUT_SEARCH.value.toLowerCase());
+      this.setAttribute("open", "");
+      const searchVal = this.removeDiactrics(this.INPUT_SEARCH.value.toLowerCase());
       this.filter(searchVal);
       const availableOptions = this.shadowRoot.querySelectorAll("li:not(.hide)");
       switch (event.key) {
-        case "ArrowRight": case "ArrowLeft": case "Home": case "End": {
+        case "ArrowRight":
+        case "ArrowLeft":
+        case "Home":
+        case "End": {
           this.moveVisualFocus(this.INPUT_SEARCH);
-		    } break;
+        }
+        break;
         case "ArrowDown": {
           if (this.VISUAL_FOCUS == this.INPUT_SEARCH && availableOptions) {
             const sel = availableOptions[0];
@@ -295,15 +299,15 @@ customElements.define("combo-box", class extends HTMLElement {
   }
   filter(searchVal) {
     this.LIS.forEach(li => {
-	  const liText = this.removeDiactrics(li.textContent.toLowerCase());
-	  if (liText.indexOf(searchVal) > -1) {
-	    this.show(li);
-	    li.setAttribute("aria-hidden", "false");
-	  } else {
-	    this.hide(li);
-	    li.setAttribute("aria-hidden", "true");
-	    li.removeAttribute("aria-selected");
-	  }
+      const liText = this.removeDiactrics(li.textContent.toLowerCase());
+      if (liText.indexOf(searchVal) > -1) {
+        this.show(li);
+        li.setAttribute("aria-hidden", "false");
+      } else {
+        this.hide(li);
+        li.setAttribute("aria-hidden", "true");
+        li.removeAttribute("aria-selected");
+      }
     });
   }
   reset() {
@@ -353,9 +357,9 @@ customElements.define("combo-box", class extends HTMLElement {
     this.BUTTON_RESET.removeAttribute("aria-hidden");
     this.BUTTON_RESET.removeAttribute("disabled");
     this.moveVisualFocus(this.INPUT_SEARCH);
-	this.INPUT_SEARCH.focus();
+    this.INPUT_SEARCH.focus();
     this.announceChange();
-	this.removeAttribute("open")
+    this.removeAttribute("open")
   }
   announceChange() {
     this.dispatchEvent(new Event("change", {
@@ -373,10 +377,10 @@ customElements.define("combo-box", class extends HTMLElement {
       mutations.forEach((mutation, index) => {
         if (mutation.addedNodes.length) this.generateItem(mutation.addedNodes[index - 1], index);
       });
-	  this.LIS = this.shadowRoot.querySelectorAll("li");
+      this.LIS = this.shadowRoot.querySelectorAll("li");
     }).observe(this, {
       childList: true
     });
-    
+
   }
 });
