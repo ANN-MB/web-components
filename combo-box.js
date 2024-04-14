@@ -12,7 +12,10 @@ customElements.define("combo-box", class extends HTMLElement {
     this.labelReset = this.getAttribute("labelreset");
     this.labelList = this.getAttribute("labellist");
     if (!this.labelSearch || !this.labelReset || !this.labelList) {
-      throw new Error(`Please provide the following attributes for accessibility :\nlabelsearch="[string]"\nlabelreset="[string]"\nlabellist="[string]"`);
+      throw new Error(`Please provide the following attributes for accessibility :
+  labelsearch="[string]" - a label for the search input
+  labelreset="[string]" - a label for the reset button
+  labellist="[string]" - a label for the options list`);
       return
     }
     this.TEMPLATE = document.createElement("template");
@@ -79,8 +82,7 @@ customElements.define("combo-box", class extends HTMLElement {
   	  text-overflow: ellipsis
   	}
   	input:focus::placeholder {
-  	  color: transparent;
-  	  opacity: 0
+  	  opacity: .2
   	}
   	input::-moz-selection { 
   	  color: var(--cb-secondary);
@@ -134,13 +136,10 @@ customElements.define("combo-box", class extends HTMLElement {
   	:host([open]) [part="combobox__bottom"] {
       display: block
   	}
-  	ul {
+  	[part="combobox__listbox"] {
       list-style: none;
       margin: 0;
       padding: 0;
-  	}
-  	ul:focus-visible {
-  	  outline: 0;
   	}
   	li {
   	  cursor: pointer;
@@ -159,11 +158,11 @@ customElements.define("combo-box", class extends HTMLElement {
   	}	
   	</style>
     <div part="combobox__top">
-      <input part="combobox__search" type="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="listBox">
-      <button part="combobox__reset" aria-hidden="true" disabled></button>
+      <input part="combobox__search" type="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="combobox__listbox">
+      <button part="combobox__reset" disabled></button>
     </div>
     <div part="combobox__bottom" tabindex="-1">
-      <ul part="combobox__list" role="listBox" id="listBox"></ul>
+      <ul role="listbox" part="combobox__listbox" id="combobox__listbox"></ul>
     </div>`;
     this.render();
   }
@@ -209,6 +208,9 @@ customElements.define("combo-box", class extends HTMLElement {
     this.INPUT_SEARCH.style.minWidth = "calc(" + this.labelSearch.length + "ch + " + this.labelSearch.length + "ch * 0.1 + 3.5em)";
     this.BUTTON_RESET.setAttribute("aria-label", this.labelReset);
     this.ITEM_LIST.setAttribute("aria-label", this.labelList);
+	this.removeAttribute("labelsearch");
+	this.removeAttribute("labellist");
+	this.removeAttribute("labelreset");
     this.querySelectorAll("item").forEach((item, index) => this.generateItem(item, index));
     this.LIS = this.shadowRoot.querySelectorAll("li");
     this.addEventListener("focus", event => {
@@ -227,6 +229,7 @@ customElements.define("combo-box", class extends HTMLElement {
         this.setValue(t)
       }
       if (t == this.BUTTON_RESET) this.reset();
+	  if (t == this.INPUT_SEARCH) this.setAttribute("open","")
     }, true);
     this.INPUT_SEARCH.addEventListener("keyup", event => {
       this.setAttribute("open", "");
@@ -234,13 +237,9 @@ customElements.define("combo-box", class extends HTMLElement {
       this.filter(searchVal);
       const availableOptions = this.shadowRoot.querySelectorAll("li:not(.hide)");
       switch (event.key) {
-        case "ArrowRight":
-        case "ArrowLeft":
-        case "Home":
-        case "End": {
+        case "ArrowRight": case "ArrowLeft": case "Home": case "End": {
           this.moveVisualFocus(this.INPUT_SEARCH);
-        }
-        break;
+        } break;
         case "ArrowDown": {
           if (this.VISUAL_FOCUS == this.INPUT_SEARCH && availableOptions) {
             const sel = availableOptions[0];
@@ -256,8 +255,7 @@ customElements.define("combo-box", class extends HTMLElement {
             }
             return
           }
-        }
-        break;
+        } break;
         case "ArrowUp": {
           if (this.VISUAL_FOCUS == this.INPUT_SEARCH && availableOptions) {
             const sel = availableOptions[availableOptions.length - 1];
@@ -271,8 +269,7 @@ customElements.define("combo-box", class extends HTMLElement {
               this.moveVisualFocus(availableOptions[availableOptions.length - 1]);
             }
           }
-        }
-        break;
+        } break;
         case "Enter": {
           if (this.VISUAL_FOCUS == this.INPUT_SEARCH) {
             for (const li of this.LIS) {
@@ -282,18 +279,18 @@ customElements.define("combo-box", class extends HTMLElement {
               }
             }
             return
-          } else if (this.VISUAL_FOCUS.tagName === "LI") this.setValue(this.VISUAL_FOCUS);
-        }
-        break;
+          } else if (this.VISUAL_FOCUS.tagName === "LI") {
+			this.setValue(this.VISUAL_FOCUS);
+		  }
+        } break;
         case "Escape": {
           if (this.BUTTON_RESET.disabled) {
             this.moveVisualFocus(this.INPUT_SEARCH);
             this.COMBOBOX_BOTTOM.scrollTo(0, 0);
           } else {
             this.BUTTON_RESET.click();
-            break;
           }
-        }
+        } break;
       }
     });
   }
@@ -302,10 +299,10 @@ customElements.define("combo-box", class extends HTMLElement {
       const liText = this.removeDiactrics(li.textContent.toLowerCase());
       if (liText.indexOf(searchVal) > -1) {
         this.show(li);
-        li.setAttribute("aria-hidden", "false");
+        //li.setAttribute("aria-hidden", "false");
       } else {
         this.hide(li);
-        li.setAttribute("aria-hidden", "true");
+        //li.setAttribute("aria-hidden", "true");
         li.removeAttribute("aria-selected");
       }
     });
@@ -317,7 +314,7 @@ customElements.define("combo-box", class extends HTMLElement {
     this.LIS.forEach(this.show);
     this.SELECTED_OPTION.removeAttribute("aria-selected");
     this.SELECTED_OPTION = null;
-    this.BUTTON_RESET.setAttribute("aria-hidden", "true");
+    //this.BUTTON_RESET.setAttribute("aria-hidden", "true");
     this.BUTTON_RESET.setAttribute("disabled", "");
     this.INPUT_SEARCH.focus();
     this.moveVisualFocus(this.INPUT_SEARCH);
@@ -381,6 +378,5 @@ customElements.define("combo-box", class extends HTMLElement {
     }).observe(this, {
       childList: true
     });
-
   }
 });
